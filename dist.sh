@@ -1,11 +1,12 @@
 #!/bin/bash
 # build binary distributions for linux/amd64 and darwin/amd64
+export GO111MODULE=on
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "working dir $DIR"
 mkdir -p $DIR/dist
-dep ensure || exit 1
+go mod tidy || exit 1
 
 os=$(go env GOOS)
 arch=$(go env GOARCH)

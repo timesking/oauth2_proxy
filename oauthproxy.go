@@ -567,7 +567,7 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// set cookie, or deny
-	if p.Validator(session.Email) && p.provider.ValidateGroup(session.Email) {
+	if p.Validator(session.Email) && p.provider.ValidateGroup(session) {
 		log.Printf("%s authentication complete %s", remoteAddr, session)
 		err := p.SaveSession(rw, req, session)
 		if err != nil {
@@ -688,11 +688,24 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		if session.Email != "" {
 			req.Header["X-Forwarded-Email"] = []string{session.Email}
 		}
+		if session.Groups != nil {
+			if len(session.Groups) > 0 {
+				g := strings.Join(session.Groups, ",")
+				req.Header["X-Forwarded-Groups"] = []string{g}
+			}
+		}
 	}
 	if p.SetXAuthRequest {
 		rw.Header().Set("X-Auth-Request-User", session.User)
 		if session.Email != "" {
 			rw.Header().Set("X-Auth-Request-Email", session.Email)
+		}
+		if session.Groups != nil {
+			if len(session.Groups) > 0 {
+				g := strings.Join(session.Groups, ",")
+				log.Printf("X-Auth-Request-Groups %s", g)
+				rw.Header().Set("X-Auth-Request-Groups", g)
+			}
 		}
 	}
 	if p.PassAccessToken && session.AccessToken != "" {

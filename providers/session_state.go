@@ -15,6 +15,7 @@ type SessionState struct {
 	RefreshToken string
 	Email        string
 	User         string
+	Groups       []string
 }
 
 func (s *SessionState) IsExpired() bool {
@@ -46,7 +47,11 @@ func (s *SessionState) EncodeSessionState(c *cookie.Cipher) (string, error) {
 }
 
 func (s *SessionState) accountInfo() string {
-	return fmt.Sprintf("email:%s user:%s", s.Email, s.User)
+	info := fmt.Sprintf("email:%s user:%s group:", s.Email, s.User)
+	if len(s.Groups) > 0 {
+		info += strings.Join(s.Groups, ",")
+	}	
+	return info
 }
 
 func (s *SessionState) EncryptedString(c *cookie.Cipher) (string, error) {
@@ -71,17 +76,28 @@ func (s *SessionState) EncryptedString(c *cookie.Cipher) (string, error) {
 
 func decodeSessionStatePlain(v string) (s *SessionState, err error) {
 	chunks := strings.Split(v, " ")
-	if len(chunks) != 2 {
-		return nil, fmt.Errorf("could not decode session state: expected 2 chunks got %d", len(chunks))
+
+	if len(chunks) != 3 {
+		return nil, fmt.Errorf("could not decode session state: expected 3 chunks got %d", len(chunks))
 	}
 
 	email := strings.TrimPrefix(chunks[0], "email:")
 	user := strings.TrimPrefix(chunks[1], "user:")
+	group := strings.TrimPrefix(chunks[2], "group:")
 	if user == "" {
 		user = strings.Split(email, "@")[0]
 	}
 
-	return &SessionState{User: user, Email: email}, nil
+	if group != "" {
+		return &SessionState{
+			User:   user,
+			Email:  email,
+			Groups: strings.Split(group, ","),
+		}, nil
+	} else {
+		return &SessionState{User: user, Email: email}, nil
+	}
+
 }
 
 func DecodeSessionState(v string, c *cookie.Cipher) (s *SessionState, err error) {

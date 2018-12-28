@@ -59,6 +59,7 @@ func TestSessionStateSerializationWithUser(t *testing.T) {
 		AccessToken:  "token1234",
 		ExpiresOn:    time.Now().Add(time.Duration(1) * time.Hour),
 		RefreshToken: "refresh4321",
+		Groups:       []string{"group1", "group2"},
 	}
 	encoded, err := s.EncodeSessionState(c)
 	assert.Equal(t, nil, err)
@@ -72,6 +73,7 @@ func TestSessionStateSerializationWithUser(t *testing.T) {
 	assert.Equal(t, s.AccessToken, ss.AccessToken)
 	assert.Equal(t, s.ExpiresOn.Unix(), ss.ExpiresOn.Unix())
 	assert.Equal(t, s.RefreshToken, ss.RefreshToken)
+	assert.Equal(t, s.Groups, ss.Groups)
 
 	// ensure a different cipher can't decode properly (ie: it gets gibberish)
 	ss, err = DecodeSessionState(encoded, c2)
@@ -82,6 +84,8 @@ func TestSessionStateSerializationWithUser(t *testing.T) {
 	assert.Equal(t, s.ExpiresOn.Unix(), ss.ExpiresOn.Unix())
 	assert.NotEqual(t, s.AccessToken, ss.AccessToken)
 	assert.NotEqual(t, s.RefreshToken, ss.RefreshToken)
+	assert.Equal(t, s.Groups, ss.Groups)
+
 }
 
 func TestSessionStateSerializationNoCipher(t *testing.T) {
@@ -93,7 +97,7 @@ func TestSessionStateSerializationNoCipher(t *testing.T) {
 	}
 	encoded, err := s.EncodeSessionState(nil)
 	assert.Equal(t, nil, err)
-	expected := fmt.Sprintf("email:%s user:", s.Email)
+	expected := fmt.Sprintf("email:%s user: group:", s.Email)
 	assert.Equal(t, expected, encoded)
 
 	// only email should have been serialized
@@ -115,7 +119,7 @@ func TestSessionStateSerializationNoCipherWithUser(t *testing.T) {
 	}
 	encoded, err := s.EncodeSessionState(nil)
 	assert.Equal(t, nil, err)
-	expected := fmt.Sprintf("email:%s user:%s", s.Email, s.User)
+	expected := fmt.Sprintf("email:%s user:%s group:", s.Email, s.User)
 	assert.Equal(t, expected, encoded)
 
 	// only email should have been serialized
@@ -132,11 +136,11 @@ func TestSessionStateAccountInfo(t *testing.T) {
 		Email: "user@domain.com",
 		User:  "just-user",
 	}
-	expected := fmt.Sprintf("email:%v user:%v", s.Email, s.User)
+	expected := fmt.Sprintf("email:%v user:%v group:", s.Email, s.User)
 	assert.Equal(t, expected, s.accountInfo())
 
 	s.Email = ""
-	expected = fmt.Sprintf("email:%v user:%v", s.Email, s.User)
+	expected = fmt.Sprintf("email:%v user:%v group:", s.Email, s.User)
 	assert.Equal(t, expected, s.accountInfo())
 }
 
